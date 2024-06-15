@@ -4,21 +4,46 @@ import wave
 
 def list_audio_devices():
     p = pyaudio.PyAudio()
+    inp_device = "VB-Audio"
+    out_device_1 = "Crusher ANC"
+    out_device_2 = "AirPods"
+    out_device_3 = "OneOdio"
+
+    out_devices = []
+    inp_device_ind = 0
+
     for i in range(p.get_device_count()):
         info = p.get_device_info_by_index(i)
+
         if info["maxOutputChannels"] > 0:
-            if True or "Crusher" in info["name"] or "AirPods" in info["name"]:
-                print(
-                    f"Device {i}: {info['name']} ({'Input' if info['maxInputChannels'] > 0 else 'Output'})"
-                )
+            if out_device_1 in info["name"]:
+                out_devices.append(i)
+                out_device_1 = "######"
+            if out_device_2 in info["name"]:
+                out_devices.append(i)
+                out_device_2 = "######"
+            if out_device_3 in info["name"]:
+                out_devices.append(i)
+                out_device_3 = "######"
+
+            print(
+                f"Device {i}: {info['name']} ({'Input' if info['maxInputChannels'] > 0 else 'Output'})"
+            )
+
+        if inp_device_ind == 0 and info["maxInputChannels"] > 0:
+            if inp_device in info["name"]:
+                inp_device_ind = i
+
     p.terminate()
+
+    print(out_devices)
+    return out_devices, inp_device_ind
 
 
 def play_audio_on_multiple_devices(
+    out_devices,
+    inp_device_ind,
     chunk_size=1024,
-    output_device1_index=10,
-    output_device2_index=12,
-    input_device_index=4,
     channels=2,
     rate=48000,
     format=pyaudio.paInt32,
@@ -30,44 +55,44 @@ def play_audio_on_multiple_devices(
         channels=channels,
         rate=rate,
         input=True,
-        input_device_index=input_device_index,
+        input_device_index=inp_device_ind,
         frames_per_buffer=chunk_size,
     )
 
-    output_stream2 = p.open(
-        format=format,
-        channels=channels,
-        rate=rate,
-        output=True,
-        output_device_index=output_device2_index,
-    )
-
-    output_stream1 = p.open(
-        format=format,
-        channels=channels,
-        rate=rate,
-        output=True,
-        output_device_index=output_device1_index,
-    )
+    out_streams = []
+    for i in out_devices:
+        try:
+            out_streams.append(
+                p.open(
+                    format=format,
+                    channels=channels,
+                    rate=rate,
+                    output=True,
+                    output_device_index=i,
+                )
+            )
+        except Exception as e:
+            print(e)
+            continue
 
     try:
         while True:
             data = input_stream.read(chunk_size)
-            output_stream2.write(data)
-            output_stream1.write(data)
+            for stream in out_streams:
+                stream.write(data)
 
     except KeyboardInterrupt:
         print("Streaming stopped.")
 
     input_stream.stop_stream()
     input_stream.close()
-    output_stream1.stop_stream()
-    output_stream1.close()
-    output_stream2.stop_stream()
-    output_stream2.close()
+
+    for stream in out_streams:
+        stream.stop_stream()
+        stream.close()
 
     p.terminate()
 
 
-list_audio_devices()
-play_audio_on_multiple_devices()
+out_devices, inp_device_ind = list_audio_devices()
+play_audio_on_multiple_devices(out_devices, inp_device_ind)
