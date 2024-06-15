@@ -1,0 +1,1 @@
+If you want to connect several headphones and watch a movie or play a videogame with your friends while you are experiencing the joy of your headphone 3D sound, use this software and connect as much as devices at the same time.
